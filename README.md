@@ -61,6 +61,7 @@ npm run dev
 | 分区治理 | `partition_mgr` | 分区策略 | 策略编号、目标表名、分区字段 |
 | 质量稽核 | `quality_check` | 稽核规则 | 规则编号、校验表名、校验字段 |
 | 血缘追踪 | `lineage_track` | 血缘链路 | 链路编号、上游表名、下游表名 |
+| 血缘链路版本表 | `lineage_version` | 链路版本/迁移批次 | 链路稳定标识、当前版本、迁移批次、冲突状态 |
 | 补数调度 | `backfill_job` | 补数任务 | 任务编号、目标表名、起始日期 |
 | 表级比对 | `table_compare` | 比对任务 | 任务编号、左表名称、右表名称 |
 | 结构注册 | `schema_registry` | 结构定义 | 定义编号、表名称、字段名称 |
@@ -77,3 +78,24 @@ npm run dev
 
 领域：数据工程
 子方向：数仓与数据湖
+
+## 血缘链路版本表迁移
+
+旧血缘链路以临时字段记录、无法区分历史版本，现新增血缘链路版本表与迁移批次表：
+
+- 双写兼容：血缘写入同时落旧视图与版本表，旧查询字段（链路编号、上游/下游表名、
+  采集批次、链路版本）保持可读，迁移期间缺失边不会被当成不存在；
+- 事务一致：版本表字段未落库即整批回滚，失败明细保留在迁移批次里；
+- 每条链路仅一个当前版本（`is_current`），历史版本与迁移批次可回查；
+- 中断可续做（`resume`，显示续做批次与完整链路集）、可按批次回滚（`rollback`，
+  显示回滚批次与一次性迁移结果），冲突未仲裁（`arbitrate`）前禁止版本切换。
+
+上线流水线、DDL 与接口清单见 `backend/docs/lineage_version_migration.md`，
+建表脚本见 `backend/sql/lineage_version_ddl.sql`，迁移命令：
+
+```bash
+make migrate-lineage            # 默认 resume，幂等可重入
+python -m app.scripts.migrate_lineage --policy rollback
+```
+
+相关环境变量见 `.env.example`（`LINEAGE_DUAL_WRITE`、`LINEAGE_MIGRATE_POLICY`）。

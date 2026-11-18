@@ -617,3 +617,57 @@ test('概览汇总', async ({ page }) => {
   await expect(page.locator('.stat-value').nth(1)).toBeVisible()
   // 验证概览页加载正常即可，不硬编码精确计数（取决于各模块 E2E 登记成功数）
 })
+
+test('血缘链路版本表：迁移、批次、版本切换、回滚与血缘核对', async ({ page }) => {
+  test.setTimeout(300_000)
+  const browserErrors: string[] = []
+  page.on('pageerror', e => browserErrors.push(e.message))
+  page.on('response', r => { if (r.url().includes('/api/') && r.status()>=400) browserErrors.push(`${r.status()} ${r.url()}`) })
+
+  await page.goto('/lineage_version')
+  await expect(page.getByTestId('run-migration')).toBeVisible()
+  // 迁移前所有存量链路都待迁移（运行时双写的边已直接落版本表，不计入缺失边）
+  const legacyBefore = Number(await page.getByTestId('stat-legacy').innerText())
+  const pendingBefore = Number(await page.getByTestId('stat-pending').innerText())
+  const migratedBefore = Number(await page.getByTestId('stat-migrated').innerText())
+  expect(pendingBefore + migratedBefore).toBe(legacyBefore)
+
+  // 执行迁移（默认 resume 严格边界）
+  await page.getByTestId('run-migration').click()
+  await expect(page.getByTestId('migrate-modal')).toBeVisible()
+  await page.getByTestId('submit-migrate').click()
+  await expect(page.getByTestId('migrate-modal')).toHaveCount(0)
+  await expect(page.getByTestId('stat-pending')).toHaveText('0')
+  // 批次表与版本表都出现数据，每条链路一个当前版本（前序 DAG 用例可能已登记新链路）
+  await expect(page.locator('[data-testid^="batch-LB-"]').first()).toBeVisible()
+  const linkRows = page.locator('[data-testid^="link-"]')
+  expect(await linkRows.count()).toBeGreaterThanOrEqual(3)
+  await expect(page.locator('[data-testid="current-version"]').first()).not.toHaveText(/已回滚/)
+
+  // 迁移后返回血缘追踪列表核对：DAG 边数与存量一致，旧查询字段仍可读
+  await page.getByTestId('goto-lineage').click()
+  await page.waitForTimeout(2000)
+  await expect(page.locator('svg.dag-svg')).toBeVisible()
+  await expect(page.locator('g.dag-node').first()).toBeVisible()
+  const edgeCountBefore = await page.locator('svg.dag-svg line.dag-edge').count()
+  expect(edgeCountBefore).toBeGreaterThanOrEqual(3)
+
+  // 回到版本表做版本切换并沿调用链追踪
+  await page.goto('/lineage_version')
+  await page.locator('[data-testid^="trace-"]').first().click()
+  await expect(page.getByTestId('trace-panel')).toBeVisible()
+  const traceText = await page.getByTestId('trace-panel').innerText()
+  expect(traceText).toContain('触达表')
+
+  // 回滚迁移批次：当前版本停用，但血缘追踪列表边不丢失（旧记录兜底）
+  const batchId = await page.locator('[data-testid^="batch-LB-"]').first().getAttribute('data-testid')
+  const id = batchId!.replace('batch-', '')
+  await page.getByTestId(`rollback-${id}`).click()
+  await page.waitForTimeout(1000)
+  await page.goto('/lineage_track')
+  await page.waitForTimeout(2000)
+  const edgeCountAfter = await page.locator('svg.dag-svg line.dag-edge').count()
+  expect(edgeCountAfter).toBe(edgeCountBefore)
+
+  expect(browserErrors).toEqual([])
+})

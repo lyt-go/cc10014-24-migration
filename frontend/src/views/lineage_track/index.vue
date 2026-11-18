@@ -5,6 +5,7 @@
       <div class="page-actions">
         <button class="btn primary" type="button" data-testid="open-create" @click="openCreate">登记血缘链路</button>
         <button class="btn" type="button" data-testid="export" @click="exportRows">导出关系清单</button>
+        <RouterLink class="btn ghost" to="/lineage_version" data-testid="goto-version">血缘链路版本表</RouterLink>
       </div>
     </header>
     <div class="dag-wrap" ref="dagRef">

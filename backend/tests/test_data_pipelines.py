@@ -41,6 +41,9 @@ def _clear_all():
     store._archive_records.clear()
     store._backfill_partitions.clear()
     store._versions.clear()
+    store._lineage_versions.clear()
+    store._lineage_batches.clear()
+    store.fail_next_lineage_write = False
 
 # ---------------------------------------------------------------------------
 # 1. 入库→映射→贴源层链路

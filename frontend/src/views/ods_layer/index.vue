@@ -48,6 +48,7 @@
             >
               {{ action }}
             </button>
+            <button class="link" type="button" :data-testid="`detail-${row.id}`" @click="showDetail(row)">关联详情</button>
           </td>
         </tr>
         <tr v-if="!rows.length">
@@ -79,7 +80,7 @@
         <table class="data-table small">
           <thead><tr><th>批次编号</th><th>来源系统</th><th>文件格式</th><th>原始行数</th><th>入库时间</th></tr></thead>
           <tbody>
-            <tr v-for="b in relatedBatches" :key="b['批次编号']"><td>{{ b['批次编号'] }}</td><td>{{ b['来源系统'] }}</td><td>{{ b['文件格式'] }}</td><td>{{ b['原始行数'] }}</td><td>{{ b['入库时间'] }}</td></tr>
+            <tr v-for="b in relatedBatches" :key="String(b['批次编号'])"><td>{{ b['批次编号'] }}</td><td>{{ b['来源系统'] }}</td><td>{{ b['文件格式'] }}</td><td>{{ b['原始行数'] }}</td><td>{{ b['入库时间'] }}</td></tr>
             <tr v-if="!relatedBatches.length"><td colspan="5" class="empty-state">无关联批次</td></tr>
           </tbody>
         </table>
@@ -94,6 +95,7 @@
           </tbody>
         </table>
       </div>
+      <div class="page-actions"><button class="btn" type="button" @click="selectedRow = null">关闭详情</button></div>
     </div>
   </section>
 </template>
@@ -119,6 +121,11 @@ const filterFields = columns.slice(0, 3)
 const showCreate = ref(false)
 const creating = ref(false)
 const createValues = ref<Record<string, string>>({})
+const selectedRow = ref<Row | null>(null)
+const relatedBatches = ref<Row[]>([])
+const tableDataPreview = ref<Row[]>([])
+const tableDataColumns = computed(() =>
+  tableDataPreview.value.length ? Object.keys(tableDataPreview.value[0]) : [])
 const stats = computed(() => [
   { label: metricNames[0], value: total.value },
   { label: metricNames[1], value: rows.value.filter((row) => row.status === statuses[1]).length },
@@ -200,6 +207,21 @@ async function reload() {
     total.value = payload.total ?? rows.value.length
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '贴源层管理列表读取失败'
+  }
+}
+
+async function showDetail(row: Row) {
+  errorMessage.value = ''
+  selectedRow.value = row
+  try {
+    const [batchRes, dataRes] = await Promise.all([
+      request(`${ENDPOINT}/${row.id}/batches`),
+      request(`${ENDPOINT}/${row.id}/data`),
+    ])
+    relatedBatches.value = (await batchRes.json()).items ?? []
+    tableDataPreview.value = ((await dataRes.json()).items ?? []).slice(0, 5)
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '关联详情加载失败'
   }
 }
 

@@ -8,9 +8,9 @@ from app.store import store
 MODULE = "partition_mgr"
 LIST_FIELDS = ["策略编号", "目标表名", "分区字段", "分区粒度", "保留天数", "冷热阈值", "预建数量", "目录规则"]
 REQUIRED_FIELDS = ["策略编号", "目标表名"]
-STATUS_ORDER = ["草稿", "待校验", "已生效", "已废弃"]
-ACTION_RULES = {"提交校验": "待校验", "标记生效": "已生效", "标记废弃": "已废弃"}
-NEGATIVE_ACTIONS = []
+STATUS_ORDER = ["草稿", "待校验", "已生效", "已停用"]
+ACTION_RULES = {"提交校验": "待校验", "标记生效": "已生效", "停用策略": "已停用"}
+NEGATIVE_ACTIONS = ["停用策略"]
 
 
 class PartitionMgrService:

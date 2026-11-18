@@ -8,9 +8,9 @@ from app.store import store
 MODULE = "dim_model"
 LIST_FIELDS = ["模型编号", "维度名称", "自然键列", "代理键列", "缓慢变化策略", "生效日期", "失效日期", "刷新周期"]
 REQUIRED_FIELDS = ["模型编号", "维度名称"]
-STATUS_ORDER = ["草稿", "待校验", "已生效", "已废弃"]
-ACTION_RULES = {"提交校验": "待校验", "标记生效": "已生效", "标记废弃": "已废弃"}
-NEGATIVE_ACTIONS = []
+STATUS_ORDER = ["草稿", "待校验", "已生效", "已停用"]
+ACTION_RULES = {"提交校验": "待校验", "标记生效": "已生效", "停用模型": "已停用"}
+NEGATIVE_ACTIONS = ["停用模型"]
 
 
 class DimModelService:

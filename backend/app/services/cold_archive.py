@@ -9,9 +9,9 @@ from app.store import store
 MODULE = "cold_archive"
 LIST_FIELDS = ["策略编号", "目标表名", "冷数据阈值", "归档路径", "压缩算法", "归档格式", "保留天数", "恢复超时"]
 REQUIRED_FIELDS = ["策略编号", "目标表名"]
-STATUS_ORDER = ["草稿", "待校验", "已生效", "已废弃"]
-ACTION_RULES = {"提交校验": "待校验", "标记生效": "已生效", "标记废弃": "已废弃"}
-NEGATIVE_ACTIONS = []
+STATUS_ORDER = ["草稿", "待校验", "已生效", "已停用"]
+ACTION_RULES = {"提交校验": "待校验", "标记生效": "已生效", "停用策略": "已停用"}
+NEGATIVE_ACTIONS = ["停用策略"]
 
 
 class ColdArchiveService:
